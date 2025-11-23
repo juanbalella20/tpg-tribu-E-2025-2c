@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import './App.css';
-import { Clock, DollarSign, Calendar, User, ArrowLeft } from 'lucide-react';
+import { Clock, DollarSign, Calendar, User, ArrowLeft, TrendingUp, Edit2 } from 'lucide-react';
 import TimesheetApp from './cargaDehoras.jsx';
 import CostReport from './reporteCostos.jsx';
 import WeeklyReport from './reporteSemanal.jsx';
+
+import ProjectCostsReport from './proyectos.jsx';
+import ProfileCostsReport from './perfiles.jsx';
 
 
 export default function App() {
@@ -39,6 +42,26 @@ export default function App() {
       bgColor: 'bg-orange-400/10',
       borderColor: 'border-orange-400/30',
       hoverColor: 'hover:border-orange-400 hover:shadow-orange-400/50'
+    },
+    {
+      id: 'projects',
+      title: 'Costos por Proyecto',
+      description: 'Visualiza costos calculados por proyecto',
+      icon: TrendingUp,
+      color: 'from-purple-400 to-pink-500',
+      bgColor: 'bg-purple-400/10',
+      borderColor: 'border-purple-400/30',
+      hoverColor: 'hover:border-purple-400 hover:shadow-purple-400/50',
+    },
+    {
+      id: 'profiles',
+      title: 'Costos por Perfil',
+      description: 'Edita costos mensuales de perfiles',
+      icon: Edit2,
+      color: 'from-indigo-400 to-blue-500',
+      bgColor: 'bg-indigo-400/10',
+      borderColor: 'border-indigo-400/30',
+      hoverColor: 'hover:border-indigo-400 hover:shadow-indigo-400/50',
     }
   ];
 
@@ -50,6 +73,10 @@ export default function App() {
         return <CostReport />;
       case 'weekly':
         return <WeeklyReport />;
+      case 'projects':
+        return <ProjectCostsReport />;
+      case 'profiles':
+        return <ProfileCostsReport />;
       default:
         return null;
     }
