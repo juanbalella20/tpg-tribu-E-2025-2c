@@ -148,11 +148,31 @@ export default function TimesheetApp({ employeeId }) {
 
   const saveEntries = async () => {
     if (!employeeId) return;
+
+    const entriesToSave = timeEntries.filter(e => e.date === selectedDate);
+
+    const totalHorasDia = entriesToSave.reduce((total, entry) => {
+        return total + (parseFloat(entry.hours) || 0);
+    }, 0);
+
+    if (totalHorasDia > 24) {
+        alert(`El total de horas cargadas para hoy suma ${totalHorasDia} horas.\nNo puede superar las 24 horas.`);
+        return;
+    }
+    for (const entry of entriesToSave) {
+        const horas = parseFloat(entry.hours);
+
+        if (horas > 0) {
+            if (!Number.isInteger(horas * 2)) {
+                alert(`Error en tarea "${entry.taskName}":\nLas horas (${horas}) deben ser múltiplos de 0.5 (ej: 1, 1.5, 2...).`);
+                return;
+            }
+        }
+    }
+
     setIsLoading(true);
 
     try {
-      const entriesToSave = timeEntries.filter(e => e.date === selectedDate);
-      
       const promises = entriesToSave.map(entry => {
         const payload = {
             id_empleado: employeeId,
@@ -363,9 +383,9 @@ export default function TimesheetApp({ employeeId }) {
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            min="0"
+                            min="0.5"
                             max="24"
-                            step="0.25"
+                            step="0.5"
                             value={entry.hours}
                             onChange={(e) => updateHours(entry.taskId, e.target.value)}
                             className="w-full bg-slate-600/50 border border-slate-500 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
