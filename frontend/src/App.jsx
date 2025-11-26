@@ -1,16 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { Clock, DollarSign, Calendar, User, ArrowLeft, TrendingUp, Edit2 } from 'lucide-react';
 import TimesheetApp from './cargaDehoras.jsx';
 import CostReport from './reporteCostos.jsx';
 import WeeklyReport from './reporteSemanal.jsx';
-
 import ProjectCostsReport from './proyectos.jsx';
 import ProfileCostsReport from './perfiles.jsx';
 
+const API_URL = "http://localhost:5000/api";
 
 export default function App() {
   const [activeView, setActiveView] = useState(null);
+  
+  // ESTADO GLOBAL: ID de empleado
+  const [employeeId, setEmployeeId] = useState(null);
+
+  // "LOGIN: Se ejecuta solo una vez al cargar la App"
+  useEffect(() => {
+    const fetchEmployeeId = async () => {
+      try {
+        const response = await fetch(`${API_URL}/simulate/rand_emplyee_id`);
+        const data = await response.json();
+        setEmployeeId(data.employee_id);
+        console.log("Sesión iniciada. Empleado ID:", data.employee_id);
+      } catch (error) {
+        console.error("Error obteniendo ID de empleado:", error);
+      }
+    };
+    fetchEmployeeId();
+  }, []); // Array vacío asegura que solo corra al montar el componente
 
   const menuOptions = [
     {
@@ -68,7 +86,7 @@ export default function App() {
   const renderActiveView = () => {
     switch (activeView) {
       case 'hours':
-        return <TimesheetApp />;
+        return <TimesheetApp employeeId={employeeId} />;
       case 'costs':
         return <CostReport />;
       case 'weekly':
@@ -88,7 +106,15 @@ export default function App() {
       <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">PSA</h1>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold">PSA</h1>
+              {/* Mostramos el ID en el header */}
+              {employeeId && (
+                <span className="text-xs text-emerald-400 font-mono">
+                  ID: {employeeId}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
@@ -136,50 +162,24 @@ export default function App() {
                     onClick={() => setActiveView(option.id)}
                     className={`group relative bg-slate-800/50 backdrop-blur-sm rounded-2xl border-2 ${option.borderColor} ${option.hoverColor} transition-all duration-300 hover:scale-105 hover:shadow-2xl p-8 text-left overflow-hidden`}
                   >
-                    {/* Background Gradient Effect */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-                    ></div>
-
-                    {/* Content */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${option.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
                     <div className="relative z-10">
-                      {/* Icon */}
-                      <div
-                        className={`w-16 h-16 ${option.bgColor} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
-                      >
+                      <div className={`w-16 h-16 ${option.bgColor} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                         <IconComponent className="w-8 h-8 text-white" />
                       </div>
-
-                      {/* Title */}
                       <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
                         {option.title}
                       </h3>
-
-                      {/* Description */}
                       <p className="text-slate-400 text-sm group-hover:text-slate-300 transition-colors">
                         {option.description}
                       </p>
-
-                      {/* Arrow indicator */}
                       <div className="mt-6 flex items-center gap-2 text-slate-500 group-hover:text-emerald-400 transition-colors">
                         <span className="text-sm font-medium">Acceder</span>
-                        <svg
-                          className="w-4 h-4 group-hover:translate-x-1 transition-transform"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
+                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
                     </div>
-
-                    {/* Decorative corner */}
                     <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full"></div>
                   </button>
                 );
