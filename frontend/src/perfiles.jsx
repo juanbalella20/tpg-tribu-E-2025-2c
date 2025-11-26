@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Edit2, Save, X, Percent, Check, DollarSign } from 'lucide-react';
+
+const API_URL = 'http://localhost:3001/api';
 
 export default function ProfileCostsReport() {
   const [selectedYear, setSelectedYear] = useState(2025);
@@ -7,26 +9,58 @@ export default function ProfileCostsReport() {
   const [showBulkModal, setShowBulkModal] = useState(null); // monthIndex si está abierto
   const [bulkPercentage, setBulkPercentage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [profiles, setProfiles] = useState([]);
+  const [profileCosts, setProfileCosts] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [tempValue, setTempValue] = useState('');
 
   const years = [2023, 2024, 2025, 2026];
   const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  // ejemplo
-  const profiles = [
-    { id: 1, name: 'Ing de Software', color: 'bg-red-500' },
-    { id: 2, name: 'Analista de Datos', color: 'bg-purple-500' }
-  ];
+  useEffect(() => {
+    fetchProfileCosts();
+  }, [selectedYear]);
 
-  // estado inicial de costos (esto vendría de la API)
-  const [profileCosts, setProfileCosts] = useState({
-    1: { 1: 4000, 2: 4000, 3: 4000, 4: 4000, 5: 4000, 6: 4000, 
-         7: 4000, 8: 4000, 9: 4000, 10: 4000, 11: 4000, 12: 4000 },
-    2: { 1: 2000, 2: 2000, 3: 2000, 4: 2000, 5: 2000, 6: 2000,
-         7: 2000, 8: 2000, 9: 2000, 10: 2000, 11: 2000, 12: 2000 }
-  });
 
-  const [tempValue, setTempValue] = useState('');
+  // agarra los costos de los perfiles del back
+  const fetchProfileCosts = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/costos-perfil/${selectedYear}`);
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar los costos de perfiles');
+      }
+      
+      const data = await response.json();
+      
+      // transformar los datos al formato que necesita el componente
+      const profilesArray = [];
+      const costsObject = {};
+      
+      data.forEach(item => {
+        profilesArray.push({
+          id: item.perfil_id,
+          name: item.perfil_nombre,
+          color: 'bg-blue-500'
+        });
+        
+        costsObject[item.perfil_id] = item.costos_por_mes;
+      });
+      
+      setProfiles(profilesArray);
+      setProfileCosts(costsObject);
+    } catch (err) {
+      console.error('Error al cargar costos:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const changeYear = (direction) => {
     const currentIndex = years.indexOf(selectedYear);
@@ -42,9 +76,32 @@ export default function ProfileCostsReport() {
     setTempValue(profileCosts[profileId]?.[monthIndex + 1] || 0);
   };
 
-  const handleCellSave = () => {
-    if (editingCell) {
-      const { profileId, monthIndex } = editingCell;
+
+  const handleCellSave = async () => {
+    if (!editingCell) return;
+
+    const { profileId, monthIndex } = editingCell;
+    const profile = profiles.find(p => p.id === profileId);
+
+    try {
+      const response = await fetch(`${API_URL}/costos-perfil`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          perfil_id: profileId,
+          perfil_nombre: profile.name,
+          costo: parseFloat(tempValue) || 0,
+          mes: monthIndex + 1,
+          año: selectedYear
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el costo');
+      }
+
       setProfileCosts(prev => ({
         ...prev,
         [profileId]: {
@@ -53,10 +110,11 @@ export default function ProfileCostsReport() {
         }
       }));
       setEditingCell(null);
-      
-      // TODO: POST/PUT a la API
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
+    } catch (err) {
+      console.error('Error al guardar:', err);
+      alert('Error al actualizar el costo');
     }
   };
 
@@ -65,31 +123,45 @@ export default function ProfileCostsReport() {
     setTempValue('');
   };
 
-  const handleBulkUpdate = (monthIndex) => {
+
+  // actualiza todos los perfiles de un mes con un porcentaje
+  const handleBulkUpdate = async (monthIndex) => {
     if (!bulkPercentage) return;
 
-    const percentage = parseFloat(bulkPercentage) / 100;
-    const prevMonthIndex = monthIndex === 0 ? 12 : monthIndex;
-
-    setProfileCosts(prev => {
-      const updated = { ...prev };
-      profiles.forEach(profile => {
-        const prevValue = prev[profile.id]?.[prevMonthIndex] || 0;
-        const newValue = Math.round(prevValue * (1 + percentage));
-        updated[profile.id] = {
-          ...updated[profile.id],
-          [monthIndex + 1]: newValue
-        };
+    try {
+      const response = await fetch(`${API_URL}/costos-perfil/mes/${selectedYear}/${monthIndex + 1}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          porcentaje: parseFloat(bulkPercentage)
+        })
       });
-      return updated;
-    });
 
-    // TODO: POST/PUT masivo a la API
-    
-    setShowBulkModal(null);
-    setBulkPercentage('');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+      if (!response.ok) {
+        throw new Error('Error al actualizar el mes');
+      }
+
+      const result = await response.json();
+
+      // Actualizar estado local con los nuevos valores
+      const updatedCosts = { ...profileCosts };
+      result.detalles.forEach(item => {
+        if (!updatedCosts[item.perfil_id]) {
+          updatedCosts[item.perfil_id] = {};
+        }
+        updatedCosts[item.perfil_id][monthIndex + 1] = item.costo;
+      });
+      setProfileCosts(updatedCosts);
+      setShowBulkModal(null);
+      setBulkPercentage('');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (err) {
+      console.error('Error al actualizar:', err);
+      alert('Error al actualizar el mes');
+    }
   };
 
   const getProfileCostForMonth = (profileId, monthIndex) => {
@@ -115,6 +187,36 @@ export default function ProfileCostsReport() {
       return sum + getProfileTotalCost(profile.id);
     }, 0);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-400 mx-auto mb-4"></div>
+          <p className="text-slate-400">Cargando costos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-center">
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={fetchProfileCosts}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
