@@ -45,32 +45,6 @@ export default function WeeklyReport() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Navbar */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-8">
-            <button className="text-2xl font-bold hover:text-emerald-400 transition-colors">
-              PSA
-            </button>
-            <nav className="flex items-center gap-2">
-              <button className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-sm">
-                Cargar Horas
-              </button>
-              <button className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium">
-                Reporte Semanal
-              </button>
-              <button className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-sm">
-                Reporte Costos
-              </button>
-              <button className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-sm">
-                Reporte Finanzas
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Título centrado */}
         <div className="text-center mb-8">
@@ -201,6 +175,5 @@ export default function WeeklyReport() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
