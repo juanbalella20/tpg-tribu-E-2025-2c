@@ -28,12 +28,22 @@ export default function App() {
       }
     };
     fetchEmployeeId();
-  }, []); // Array vacío asegura que solo corra al montar el componente
+  }, []);
 
+  // Definimos las opciones de navegación
+  const navItems = [
+    { id: 'hours', label: 'Carga de Horas', icon: Clock },
+    { id: 'costs', label: 'Reporte Costos', icon: DollarSign },
+    { id: 'weekly', label: 'Reporte Semanal', icon: Calendar },
+    { id: 'projects', label: 'Costos Proyecto', icon: TrendingUp },
+    { id: 'profiles', label: 'Costos Perfil', icon: Edit2 },
+  ];
+
+  // Configuración para las tarjetas del Dashboard (Home)
   const menuOptions = [
     {
       id: 'hours',
-      title: 'Cargar Horas',
+      title: 'Carga de Horas',
       description: 'Registra tus horas trabajadas',
       icon: Clock,
       color: 'from-cyan-400 to-blue-500',
@@ -90,7 +100,7 @@ export default function App() {
       case 'costs':
         return <CostReport />;
       case 'weekly':
-        return <WeeklyReport />;
+        return <WeeklyReport employeeId={employeeId} />;
       case 'projects':
         return <ProjectCostsReport />;
       case 'profiles':
@@ -102,57 +112,78 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Header */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      {/* Header Modificado con Navegación */}
+      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <h1 className="text-2xl font-bold">PSA</h1>
-              {/* Mostramos el ID en el header */}
+            
+            {/* Logo e Info - Clickeable para ir a Home */}
+            <div 
+              className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setActiveView(null)}
+            >
+              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                PSA
+              </h1>
               {employeeId && (
-                <span className="text-xs text-emerald-400 font-mono">
+                <span className="text-xs text-slate-400 font-mono">
                   ID: {employeeId}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                  <User className="w-5 h-5 text-slate-300" />
-                </div>
-              </div>
-              <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm">
-                Cerrar Sesión
-              </button>
+
+            {/* Nueva Barra de Navegación */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveView(item.id)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 
+                    ${activeView === item.id 
+                      ? 'bg-slate-700 text-emerald-400 shadow-sm border border-slate-600' 
+                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Menú móvil simple (opcional, visible solo si la pantalla es muy chica) */}
+            <div className="md:hidden">
+               {/* Aquí podrías poner un menú hamburguesa, por ahora solo mostramos el ID */}
             </div>
+            
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView ? (
           <div className="space-y-6">
+            {/* Botón Volver adicional (opcional, ya que el header navega) */}
             <button
               onClick={() => setActiveView(null)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/70 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/70 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
-              Volver al panel
+              Volver al Panel Principal
             </button>
-            <div className="bg-slate-800/30 rounded-2xl border border-slate-700 overflow-hidden">
+            
+            <div className="bg-slate-800/30 rounded-2xl border border-slate-700 overflow-hidden shadow-xl">
               {renderActiveView()}
             </div>
           </div>
         ) : (
           <>
             {/* Welcome Section */}
-            <div className="text-center mb-12">
+            <div className="text-center mb-12 pt-8">
               <h2 className="text-4xl font-bold mb-3">Panel de Control</h2>
-              <p className="text-slate-400 text-lg">Selecciona una opción para comenzar</p>
+              <p className="text-slate-400 text-lg">Bienvenido. Selecciona una opción para gestionar.</p>
             </div>
 
-            {/* Menu Cards */}
+            {/* Menu Cards (Se mantienen para la vista principal) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {menuOptions.map((option) => {
                 const IconComponent = option.icon;
@@ -180,7 +211,6 @@ export default function App() {
                         </svg>
                       </div>
                     </div>
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full"></div>
                   </button>
                 );
               })}
