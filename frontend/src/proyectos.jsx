@@ -1,36 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, DollarSign, TrendingUp } from 'lucide-react';
 
+const API_URL = 'http://localhost:3001/api';
+
 export default function ProjectCostsReport() {
   const [projects, setProjects] = useState([]);
   const [selectedYear, setSelectedYear] = useState(2025);
   const [projectCosts, setProjectCosts] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const years = [2023, 2024, 2025, 2026];
 
-  // TODO: reemplazar con llamada real a la API
-  useEffect(() => {
-    setProjects([
-      { id: 1, name: 'Proyecto Alpha', color: 'bg-red-500' },
-      { id: 2, name: 'Proyecto Beta', color: 'bg-purple-500' },
-      { id: 3, name: 'Proyecto Gamma', color: 'bg-blue-500' },
-      { id: 4, name: 'Proyecto Delta', color: 'bg-green-500' }
-    ]);
 
-    setProjectCosts({
-      1: { 1: 45000, 2: 48000, 3: 47000, 4: 50000, 5: 52000, 6: 51000, 
-           7: 49000, 8: 53000, 9: 55000, 10: 54000, 11: 56000, 12: 58000 },
-      2: { 1: 38000, 2: 40000, 3: 39000, 4: 42000, 5: 44000, 6: 43000,
-           7: 41000, 8: 45000, 9: 47000, 10: 46000, 11: 48000, 12: 50000 },
-      3: { 1: 52000, 2: 54000, 3: 53000, 4: 56000, 5: 58000, 6: 57000,
-           7: 55000, 8: 59000, 9: 61000, 10: 60000, 11: 62000, 12: 64000 },
-      4: { 1: 41000, 2: 43000, 3: 42000, 4: 45000, 5: 47000, 6: 46000,
-           7: 44000, 8: 48000, 9: 50000, 10: 49000, 11: 51000, 12: 53000 }
-    });
+  // cargar datos cuando cambia el año
+  useEffect(() => {
+    fetchProjectCosts();
   }, [selectedYear]);
+
+
+  // agarro los costos de proyecots desde el back
+  const fetchProjectCosts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/costos-proyecto/${selectedYear}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar los costos de proyectos');
+      }
+      
+      const data = await response.json();
+
+      const projectsArray = [];
+      const costsObject = {};
+
+      data.forEach(item => {
+        projectsArray.push({
+          id: item.proyecto_id,
+          name: item.proyecto_nombre,
+          color: 'bg-blue-500'
+        });
+        
+        costsObject[item.proyecto_id] = item.costos_por_mes;
+      });
+      
+      setProjects(projectsArray);
+      setProjectCosts(costsObject);
+    } catch (err) {
+      console.error('Error al cargar costos:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getProjectCostForMonth = (projectId, monthIndex) => {
     return projectCosts[projectId]?.[monthIndex + 1] || 0;
@@ -64,6 +89,37 @@ export default function ProjectCostsReport() {
       setSelectedYear(years[currentIndex + 1]);
     }
   };
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-400 mx-auto mb-4"></div>
+          <p className="text-slate-400">Cargando costos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-500/10 border border-red-500 rounded-xl p-6 text-center">
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={fetchProjectCosts}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
