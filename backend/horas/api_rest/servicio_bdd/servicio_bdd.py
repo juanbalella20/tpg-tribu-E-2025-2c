@@ -22,8 +22,6 @@ def crear_bd_y_tabla():
             idTarea          TEXT NOT NULL,
             fecha            TEXT NOT NULL,
             horasTrabajadas  REAL NOT NULL,
-            estadoValidacion TEXT,
-            descripcion      TEXT,
             PRIMARY KEY (idEmpleado, idTarea, fecha)
         );
         """)
@@ -34,7 +32,7 @@ def crear_bd_y_tabla():
     finally:
         conn.close()
 
-def agregar_registro(id_empleado, id_tarea, fecha_, horas, estado="pendiente", desc=""):
+def agregar_registro(id_empleado, id_tarea, fecha_, horas, desc=""):
     """Inserta o actualiza un registro de horas."""
     # Convertir fecha a string si es objeto date
     if isinstance(fecha_, date):
@@ -46,12 +44,12 @@ def agregar_registro(id_empleado, id_tarea, fecha_, horas, estado="pendiente", d
 
     conn = get_db_connection()
     try:
-        # Usamos REPLACE
+        # Usamos REPLACE para actualizar si ya existe la combinación PK
         conn.execute("""
             INSERT OR REPLACE INTO registro_horas
-            (idEmpleado, idTarea, fecha, horasTrabajadas, estadoValidacion, descripcion)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (str(id_empleado), str(id_tarea), fecha_str, float(horas), estado, desc))
+            (idEmpleado, idTarea, fecha, horasTrabajadas)
+            VALUES (?, ?, ?, ?)
+        """, (str(id_empleado), str(id_tarea), fecha_str, float(horas)))
         
         conn.commit()
         print(f"Registro guardado: {id_empleado} - Tarea {id_tarea} - {horas}hs")
@@ -85,7 +83,7 @@ def obtener_registros_por_empleado(id_empleado):
     filas = []
     try:
         cursor = conn.execute("""
-            SELECT idEmpleado, idTarea, fecha, horasTrabajadas, estadoValidacion, descripcion
+            SELECT idEmpleado, idTarea, fecha, horasTrabajadas
             FROM registro_horas
             WHERE idEmpleado = ?
             ORDER BY fecha ASC
@@ -98,5 +96,25 @@ def obtener_registros_por_empleado(id_empleado):
     finally:
         conn.close()
         
+    return filas
+
+
+def obtener_todos_los_registros():
+    """Devuelve todos los registros de la tabla sin filtrar por empleado."""
+    crear_bd_y_tabla()
+    conn = get_db_connection()
+    filas = []
+    try:
+        cursor = conn.execute("""
+            SELECT idEmpleado, idTarea, fecha, horasTrabajadas
+            FROM registro_horas
+            ORDER BY fecha ASC
+        """)
+        filas = [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        print(f"Error SQL al consultar todos los registros: {e}")
+    finally:
+        conn.close()
+
     return filas
     

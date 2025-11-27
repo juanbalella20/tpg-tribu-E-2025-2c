@@ -36,7 +36,6 @@ def registrar_horas(data):
             id_tarea=id_tarea,
             fecha_=fecha,
             horas=horas,
-            estado="pendiente",  # Valor por defecto
             desc="Carga web"
         )
         

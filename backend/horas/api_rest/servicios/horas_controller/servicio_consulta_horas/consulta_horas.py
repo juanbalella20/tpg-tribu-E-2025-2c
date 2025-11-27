@@ -38,7 +38,6 @@ def obtener_horas_semanales(id_empleado, fecha):
                     "id_tarea": int(registro['idTarea']) if str(registro['idTarea']).isdigit() else registro['idTarea'],
                     "cantidad": registro['horasTrabajadas'],
                     "fecha": registro['fecha'],
-                    "estado": registro['estadoValidacion']
                 })
         
         return registros_semana

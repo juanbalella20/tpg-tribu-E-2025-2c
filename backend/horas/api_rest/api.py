@@ -16,7 +16,8 @@ try:
     from servicio_bdd.servicio_bdd import (
         crear_bd_y_tabla, 
         obtener_registros_por_empleado, 
-        eliminar_registro
+        eliminar_registro,
+        obtener_todos_los_registros
     )
     from servicios.horas_controller.servicio_registro_horas.registro_horas import registrar_horas
 except ImportError as e:
@@ -33,7 +34,6 @@ except ImportError:
                 "id_tarea": int(r['idTarea']) if str(r['idTarea']).isdigit() else r['idTarea'],
                 "cantidad": r['horasTrabajadas'],
                 "fecha": r['fecha'],
-                "estado": r['estadoValidacion']
             } for r in registros
         ]
 
@@ -48,6 +48,24 @@ CORS(app)
 
 # Inicializar Base de Datos
 crear_bd_y_tabla()
+
+
+@app.get("/")
+def index():
+    """Devuelve un resumen con el contenido actual de registro_horas.db."""
+    try:
+        registros = obtener_todos_los_registros()
+        return jsonify({
+            "status": "ok",
+            "total": len(registros),
+            "registros": registros
+        }), 200
+    except Exception as exc:
+        return jsonify({
+            "status": "error",
+            "message": "No se pudo leer la base de datos",
+            "details": str(exc)
+        }), 500
 
 BASE_MOCK_URL = "https://anypoint.mulesoft.com/mocking/api/v1/sources/exchange/assets/32c8fe38-22a6-4fbb-b461-170dfac937e4"
 RESOURCES_URL = f"{BASE_MOCK_URL}/recursos-api/1.0.1/m/recursos"
@@ -165,7 +183,6 @@ def get_all_proyectos():
                 proyectos_formateados.append({
                     "id": proyecto["id"],
                     "name": proyecto["nombre"],
-                    "description": proyecto["descripcion"],
                     "color": colores[index % len(colores)] 
                 })
             return jsonify(proyectos_formateados), 200
