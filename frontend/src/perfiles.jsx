@@ -16,8 +16,8 @@ export default function ProfileCostsReport() {
   const [tempValue, setTempValue] = useState('');
 
   const years = [2023, 2024, 2025, 2026];
-  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   useEffect(() => {
     fetchProfileCosts();
@@ -28,30 +28,30 @@ export default function ProfileCostsReport() {
   const fetchProfileCosts = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${API_URL}/costos-perfil/${selectedYear}`);
-      
+
       if (!response.ok) {
         throw new Error('Error al cargar los costos de perfiles');
       }
-      
+
       const data = await response.json();
-      
+
       // transformar los datos al formato que necesita el componente
       const profilesArray = [];
       const costsObject = {};
-      
+
       data.forEach(item => {
         profilesArray.push({
           id: item.perfil_id,
           name: item.perfil_nombre,
           color: 'bg-blue-500'
         });
-        
+
         costsObject[item.perfil_id] = item.costos_por_mes;
       });
-      
+
       setProfiles(profilesArray);
       setProfileCosts(costsObject);
     } catch (err) {
@@ -94,7 +94,7 @@ export default function ProfileCostsReport() {
           perfil_nombre: profile.name,
           costo: parseFloat(tempValue) || 0,
           mes: monthIndex + 1,
-          año: selectedYear
+          anio: selectedYear
         })
       });
 
@@ -243,11 +243,10 @@ export default function ProfileCostsReport() {
                 <button
                   key={year}
                   onClick={() => setSelectedYear(year)}
-                  className={`px-8 py-3 rounded-lg transition-all font-semibold ${
-                    selectedYear === year
+                  className={`px-8 py-3 rounded-lg transition-all font-semibold ${selectedYear === year
                       ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
+                    }`}
                 >
                   {year}
                 </button>
@@ -320,9 +319,8 @@ export default function ProfileCostsReport() {
                 {profiles.map((profile, profileIdx) => (
                   <tr
                     key={profile.id}
-                    className={`border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors ${
-                      profileIdx % 2 === 0 ? 'bg-slate-800/20' : ''
-                    }`}
+                    className={`border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors ${profileIdx % 2 === 0 ? 'bg-slate-800/20' : ''
+                      }`}
                   >
                     <td className="px-6 py-4 sticky left-0 bg-slate-800/90 backdrop-blur-sm z-10">
                       <div className="flex items-center gap-3">
