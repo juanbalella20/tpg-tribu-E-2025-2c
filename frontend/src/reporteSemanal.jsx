@@ -152,6 +152,34 @@ export default function WeeklyReport({ employeeId }) {
     return Object.values(weeklyData).flat().reduce((sum, task) => sum + task.hours, 0);
   };
 
+  // Calcular el ancho uniforme de cada columna
+  const calculateUniformColumnWidth = () => {
+    const allTasks = Object.values(weeklyData).flat();
+    let maxWidthPerHour = 80; // Ancho mínimo por defecto
+
+    // Para cada tarea, calcular cuánto ancho necesita por hora
+    allTasks.forEach(task => {
+      const hours = task.hours;
+      // Estimación del ancho del texto (caracteres * ~8px por carácter + padding)
+      const taskTextLength = task.task.length;
+      const projectTextLength = `${task.project} - ${task.hours}h`.length;
+      const maxTextLength = Math.max(taskTextLength, projectTextLength);
+      const estimatedTotalWidth = maxTextLength * 8 + 40; // 8px por carácter + 40px de padding
+
+      // Calcular cuánto ancho necesita esta tarea por cada hora
+      const widthPerHour = estimatedTotalWidth / hours;
+
+      // Guardar el máximo ancho por hora
+      if (widthPerHour > maxWidthPerHour) {
+        maxWidthPerHour = widthPerHour;
+      }
+    });
+
+    return maxWidthPerHour;
+  };
+
+  const uniformColumnWidth = calculateUniformColumnWidth();
+
   // Formatear el rango de la semana para mostrar
   const getWeekRangeDisplay = () => {
     const monday = getMonday(currentWeekStart);
@@ -230,23 +258,24 @@ export default function WeeklyReport({ employeeId }) {
         </div>
 
         <div className="overflow-x-auto">
-          <div className="min-w-full">
+          <div className="inline-block min-w-full">
             {/* Encabezado con escala de horas */}
             <div className="flex border-b border-slate-700 bg-slate-800/50">
               <div className="w-32 flex-shrink-0 p-4 font-semibold text-slate-300 border-r border-slate-700">
                 Día
               </div>
-              <div className="flex-1 relative h-12">
-                <div className="absolute inset-0 flex">
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <div key={i} className="flex-1 border-r border-slate-700/30 text-center">
-                      <span className="text-xs text-slate-500">{i + 1}h</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="w-24 flex-shrink-0 p-4 text-center font-semibold text-slate-300 border-l border-slate-700">
+              <div className="w-24 flex-shrink-0 p-4 text-center font-semibold text-slate-300 border-r border-slate-700">
                 Total
+              </div>
+              <div className="flex relative h-12">
+                {Array.from({ length: 24 }, (_, i) => {
+                  const hourNum = i + 1;
+                  return (
+                    <div key={i} className="border-r border-slate-700/30 text-center px-2 flex-shrink-0" style={{ width: `${uniformColumnWidth}px` }}>
+                      <span className="text-xs text-slate-500">{hourNum}h</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -260,42 +289,53 @@ export default function WeeklyReport({ employeeId }) {
                   <div className="w-32 flex-shrink-0 p-4 font-medium border-r border-slate-700 flex items-center">
                     {day.displayName}
                   </div>
-                  <div className="flex-1 relative min-h-20">
-                    {/* Líneas de fondo */}
-                    <div className="absolute inset-0 flex">
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <div key={i} className="flex-1 border-r border-slate-700/20"></div>
-                      ))}
-                    </div>
+                  <div className="w-24 flex-shrink-0 p-4 text-center border-r border-slate-700 flex items-center justify-center">
+                    <span className="font-bold text-emerald-400 text-lg">{dayTotal}h</span>
+                  </div>
+                  <div className="flex relative min-h-20">
+                    {/* Columnas de horas con contenido */}
+                    {Array.from({ length: 24 }, (_, hourIndex) => {
+                      return (
+                        <div key={hourIndex} className="border-r border-slate-700/20 relative flex-shrink-0" style={{ width: `${uniformColumnWidth}px` }}>
+                          {/* Contenido de la columna se renderiza más abajo */}
+                        </div>
+                      );
+                    })}
 
-                    {/* Tareas con posicionamiento absoluto basado en horas */}
-                    <div className="relative h-full py-3">
+                    {/* Tareas superpuestas sobre las columnas */}
+                    <div className="absolute inset-0 py-3 px-2">
                       {dayTasks.length === 0 ? (
                         <span className="text-slate-500 text-sm italic ml-2">Sin horas registradas</span>
                       ) : (
-                        <div className="absolute inset-0 py-3 flex">
-                          {dayTasks.map((task, idx) => {
-                            const widthPercentage = (task.hours / 24) * 100;
+                        dayTasks.map((task, idx) => {
+                          // Calcular el ancho: ancho de columna × número de horas
+                          const taskWidth = uniformColumnWidth * task.hours;
 
-                            return (
-                              <div
-                                key={idx}
-                                className={`${task.color} rounded-lg px-3 py-2 text-slate-900 text-sm font-medium shadow-sm`}
-                                style={{
-                                  width: `${widthPercentage}%`
-                                }}
-                              >
-                                <div className="font-semibold truncate">{task.task}</div>
-                                <div className="text-xs opacity-75 truncate">{task.project} - {task.hours}h</div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                          // Calcular la posición de inicio basada en las tareas anteriores
+                          let leftOffset = 0;
+                          for (let i = 0; i < idx; i++) {
+                            const prevTask = dayTasks[i];
+                            leftOffset += uniformColumnWidth * prevTask.hours;
+                            leftOffset += 8; // gap de 8px entre tareas (gap-2 = 0.5rem = 8px)
+                          }
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`${task.color} rounded-lg px-3 py-2 text-slate-900 text-sm font-medium shadow-sm whitespace-nowrap absolute`}
+                              style={{
+                                width: `${taskWidth}px`,
+                                left: `${leftOffset}px`,
+                                top: '12px' // py-3 = 0.75rem = 12px
+                              }}
+                            >
+                              <div className="font-semibold">{task.task}</div>
+                              <div className="text-xs opacity-75">{task.project} - {task.hours}h</div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
-                  </div>
-                  <div className="w-24 flex-shrink-0 p-4 text-center border-l border-slate-700 flex items-center justify-center">
-                    <span className="font-bold text-emerald-400 text-lg">{dayTotal}h</span>
                   </div>
                 </div>
               );
