@@ -407,7 +407,7 @@ def endpoint_registrar_horas():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.delete("/api/horas/<string:id_empleado>/<int:id_tarea>/<string:fecha>")
+@app.delete("/api/horas/<string:id_empleado>/<string:id_tarea>/<string:fecha>")
 def endpoint_eliminar_horas(id_empleado, id_tarea, fecha):
     try:
         eliminar_registro(id_empleado, id_tarea, fecha)
