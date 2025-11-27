@@ -16,8 +16,6 @@ def crear_bd_y_tabla():
     """Crea la tabla 'registro_horas' si no existe."""
     conn = get_db_connection()
     try:
-        # Usamos nombres de columnas en CamelCase para compatibilidad, 
-        # pero nombre de tabla en minúsculas 'registro_horas' para evitar errores.
         conn.execute("""
         CREATE TABLE IF NOT EXISTS registro_horas (
             idEmpleado       TEXT NOT NULL,
@@ -44,12 +42,11 @@ def agregar_registro(id_empleado, id_tarea, fecha_, horas, estado="pendiente", d
     else:
         fecha_str = fecha_
 
-    # Aseguramos que la tabla exista antes de insertar
     crear_bd_y_tabla()
 
     conn = get_db_connection()
     try:
-        # Usamos REPLACE para que si el usuario corrige horas del mismo día/tarea, se actualice
+        # Usamos REPLACE
         conn.execute("""
             INSERT OR REPLACE INTO registro_horas
             (idEmpleado, idTarea, fecha, horasTrabajadas, estadoValidacion, descripcion)
@@ -102,3 +99,4 @@ def obtener_registros_por_empleado(id_empleado):
         conn.close()
         
     return filas
+    

@@ -10,30 +10,9 @@ const formatDate = (date) => {
 
 export default function TimesheetApp({ employeeId }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(null); // Para mostrar carga en el botón de borrar específico
-
-  // Datos estáticos de proyectos y tareas
-  const [projects] = useState([
-    { id: 1, name: 'Proyecto 1', color: 'bg-red-500' },
-    { id: 2, name: 'Proyecto 2', color: 'bg-purple-500' },
-    { id: 3, name: 'Proyecto 3', color: 'bg-blue-500' },
-    { id: 4, name: 'Proyecto 4', color: 'bg-green-500' }
-  ]);
-
-  const [tasks] = useState([
-    { id: 1, projectId: 1, name: 'Diseño de interfaz' },
-    { id: 2, projectId: 1, name: 'Desarrollo frontend' },
-    { id: 3, projectId: 1, name: 'Testing de componentes' },
-    { id: 4, projectId: 2, name: 'Configuración servidor' },
-    { id: 5, projectId: 2, name: 'API REST' },
-    { id: 6, projectId: 2, name: 'Documentación técnica' },
-    { id: 7, projectId: 3, name: 'Análisis de requisitos' },
-    { id: 8, projectId: 3, name: 'Base de datos' },
-    { id: 9, projectId: 3, name: 'Integración de sistemas' },
-    { id: 10, projectId: 4, name: 'Revisión de código' },
-    { id: 11, projectId: 4, name: 'Optimización' },
-    { id: 12, projectId: 4, name: 'Deploy producción' }
-  ]);
+  const [isDeleting, setIsDeleting] = useState(null);
+  const [projects, setProjects] = useState([]); 
+  const [tasks, setTasks] = useState([]);
 
   const now = new Date();
   const minSelectableDate = new Date(now);
@@ -53,6 +32,23 @@ export default function TimesheetApp({ employeeId }) {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/projects/`);
+        if (response.ok) {
+          const data = await response.json();
+          setProjects(data);
+        }
+      } catch (error) {
+        console.error("Error cargando proyectos:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  // 3. Cargar horas cuando cambia fecha o empleado
+  useEffect(() => {
     if (!employeeId || !selectedDate) return;
 
     const fetchHours = async () => {
@@ -61,6 +57,7 @@ export default function TimesheetApp({ employeeId }) {
         const response = await fetch(`${API_URL}/horas/${employeeId}/${selectedDate}`);
         if (response.ok) {
             const data = await response.json();
+            // Filtramos por si la API trae más fechas, aunque la URL ya filtra
             const daysEntries = data.filter(entry => entry.fecha === selectedDate);
             
             const mappedEntries = daysEntries.map(entry => {

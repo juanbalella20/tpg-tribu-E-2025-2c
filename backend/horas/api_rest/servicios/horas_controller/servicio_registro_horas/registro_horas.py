@@ -12,13 +12,7 @@ root_api = os.path.abspath(os.path.join(current, '../../../'))
 if root_api not in sys.path:
     sys.path.append(root_api)
 
-# Ahora podemos importar servicio_bdd como si estuviéramos en la raíz
-try:
-    from servicio_bdd.servicio_bdd import agregar_registro
-except ImportError:
-    # Fallback por si la estructura de carpetas varía ligeramente
-    sys.path.append(os.path.join(root_api, 'servicio_bdd'))
-    from servicio_bdd import agregar_registro
+from servicio_bdd.servicio_bdd import agregar_registro
 
 def registrar_horas(data):
     """
