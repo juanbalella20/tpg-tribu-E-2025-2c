@@ -72,7 +72,37 @@ RESOURCES_URL = f"{BASE_MOCK_URL}/recursos-api/1.0.1/m/recursos"
 PROJECTS_URL  = f"{BASE_MOCK_URL}/proyectos-api/1.0.0/m/proyectos"
 TASKS_URL     = f"{BASE_MOCK_URL}/tareas-api/1.0.0/m/tareas"
 ROLES_URL     = f"{BASE_MOCK_URL}/roles-api/1.0.0/m/roles"
-# FINANCE_URL   = " "
+FINANCE_API_URL = os.environ.get("FINANCE_API_URL", "http://localhost:3001/api")
+PROFILE_COSTS_URL = f"{FINANCE_API_URL}/costos-perfil"
+
+
+def obtener_costos_perfil_anuales(anio):
+    """Devuelve un diccionario {perfil_id: {mes: costo_hora}} para el año solicitado."""
+    try:
+        response = requests.get(f"{PROFILE_COSTS_URL}/{anio}")
+        if response.status_code != 200:
+            return {}
+        data = response.json() or []
+        costos = {}
+        for fila in data:
+            perfil_id = str(fila.get("perfil_id"))
+            if not perfil_id:
+                continue
+            meses_costos = {}
+            costos_por_mes = fila.get("costos_por_mes") or {}
+            for mes, valor in costos_por_mes.items():
+                try:
+                    mes_int = int(mes)
+                    meses_costos[mes_int] = float(valor or 0)
+                except (ValueError, TypeError):
+                    continue
+            costos[perfil_id] = meses_costos
+        return costos
+    except Exception as exc:
+        print(f"Error consultando costos por perfil: {exc}")
+        return {}
+FINANCE_API_URL = os.environ.get("FINANCE_API_URL", "http://localhost:3001/api")
+PROFILE_COSTS_URL = f"{FINANCE_API_URL}/costos-perfil"
 
 @app.get("/api/employees/<string:employee_id>")
 def get_employee_detail(employee_id):
@@ -288,7 +318,7 @@ def get_project_info(project_id):
         tasks_data = tasks_resp.json()
         resources_data = res_resp.json()
         roles_data = roles_resp.json()
-        # finance_data = fin_resp.json() if fin_resp.status_code == 200 else []
+        profile_costs = obtener_costos_perfil_anuales(year_filter)
 
         project_tasks = [
             t for t in tasks_data 
@@ -301,12 +331,6 @@ def get_project_info(project_id):
         resources_map = {str(r.get("id")): r for r in resources_data}
         roles_map = {str(r.get("id")): r for r in roles_data}
         
-        role_hourly_cost = {}
-        # for profile in finance_data:
-            # role_key = str(profile.get("rolAsociado") or profile.get("rolId") or "")
-            # if role_key:
-                # role_hourly_cost[role_key] = float(profile.get("costoHora") or 0)
-
         employees_info = []
         monthly_costs = {}
         monthly_hours = {}
@@ -318,7 +342,7 @@ def get_project_info(project_id):
 
             emp_role_id = str(employee.get("rolId"))
             role_obj = roles_map.get(emp_role_id)
-            hourly_rate = role_hourly_cost.get(emp_role_id, 0.0)
+            role_monthly_costs = profile_costs.get(emp_role_id, {})
 
             registros = obtener_registros_por_empleado(emp_id)
             
@@ -347,7 +371,13 @@ def get_project_info(project_id):
                     monthly_costs[month_key] = {}
 
                 monthly_hours[month_key][emp_id] = monthly_hours[month_key].get(emp_id, 0) + horas
+                hourly_rate = role_monthly_costs.get(month_key, 0.0)
                 monthly_costs[month_key][emp_id] = monthly_costs[month_key].get(emp_id, 0) + (horas * hourly_rate)
+
+            if role_monthly_costs:
+                costo_promedio = sum(role_monthly_costs.values()) / len(role_monthly_costs)
+            else:
+                costo_promedio = 0.0
 
             employees_info.append({
                 "employeeId": emp_id,
@@ -355,7 +385,7 @@ def get_project_info(project_id):
                 "apellido": employee.get("apellido"),
                 "rolId": emp_role_id,
                 "rol": role_obj,
-                "costoHora": hourly_rate,
+                "costoHora": costo_promedio,
                 "totalHorasProyecto": emp_total_hours_project
             })
         costos_serializados = {
