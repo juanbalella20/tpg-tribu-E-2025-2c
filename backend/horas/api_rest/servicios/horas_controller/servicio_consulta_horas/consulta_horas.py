@@ -17,24 +17,7 @@ except ImportError:
 from datetime import datetime, timedelta
 
 def obtener_horas_semanales(id_empleado, fecha):
-    """
-    Obtiene las horas trabajadas por un empleado en una semana específica.
-    
-    Args:
-        id_empleado: ID del empleado
-        fecha: Fecha en formato ISO (YYYY-MM-DD) que representa cualquier día de la semana
-    
-    Returns:
-        Lista de diccionarios con formato:
-        [
-            {
-                "id_tarea": int/str,
-                "cantidad": float,
-                "fecha": str,
-                "estado": str
-            }
-        ]
-    """
+    """ Obtiene las horas trabajadas por un empleado en una semana específica. """
     try:
         # Obtener todos los registros del empleado
         todos_registros = obtener_registros_por_empleado(id_empleado)

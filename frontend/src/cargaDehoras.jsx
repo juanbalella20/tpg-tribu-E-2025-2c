@@ -47,7 +47,30 @@ export default function TimesheetApp({ employeeId }) {
     fetchProjects();
   }, []);
 
-  // 3. Cargar horas cuando cambia fecha o empleado
+  useEffect(() => {
+    if (!selectedProject || !employeeId) {
+      setTasks([]);
+      return;
+    }
+
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch(`${API_URL}/projects/${selectedProject}/${employeeId}/tasks/`);
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+        } else {
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error("Error cargando tareas del proyecto:", error);
+        setTasks([]);
+      }
+    };
+
+    fetchTasks();
+  }, [selectedProject, employeeId]);
+
   useEffect(() => {
     if (!employeeId || !selectedDate) return;
 
@@ -57,14 +80,14 @@ export default function TimesheetApp({ employeeId }) {
         const response = await fetch(`${API_URL}/horas/${employeeId}/${selectedDate}`);
         if (response.ok) {
             const data = await response.json();
-            // Filtramos por si la API trae más fechas, aunque la URL ya filtra
             const daysEntries = data.filter(entry => entry.fecha === selectedDate);
             
             const mappedEntries = daysEntries.map(entry => {
                 const taskDef = tasks.find(t => t.id === entry.id_tarea);
+                
                 return {
                     taskId: entry.id_tarea,
-                    taskName: taskDef ? taskDef.name : 'Tarea desconocida',
+                    taskName: taskDef ? taskDef.name : 'Tarea registrada',
                     projectId: taskDef ? taskDef.projectId : null,
                     date: entry.fecha,
                     hours: parseFloat(entry.cantidad)
@@ -81,11 +104,8 @@ export default function TimesheetApp({ employeeId }) {
 
     fetchHours();
   }, [employeeId, selectedDate, tasks]);
-
   const filteredTasks = tasks.filter(task => {
-    const matchesProject = !selectedProject || task.projectId === selectedProject;
-    const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesProject && matchesSearch;
+    return task.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const handleDateChange = (value) => {
@@ -114,19 +134,14 @@ export default function TimesheetApp({ employeeId }) {
     ));
   };
 
-  // --- FUNCIÓN PARA ELIMINAR DE LA BD ---
   const removeEntry = async (taskId) => {
-
-    setIsDeleting(taskId); // Activa spinner en el botón específico
-
+    setIsDeleting(taskId);
     try {
-        // Llamada a la API DELETE
         const response = await fetch(`${API_URL}/horas/${employeeId}/${taskId}/${selectedDate}`, {
             method: 'DELETE',
         });
 
         if (response.ok) {
-            // Actualizamos la UI
             setTimeEntries(prevEntries => prevEntries.filter(e => !(e.taskId === taskId && e.date === selectedDate)));
             setSuccessMessage("Registro eliminado");
             setShowSuccess(true);
@@ -158,7 +173,6 @@ export default function TimesheetApp({ employeeId }) {
     }
     for (const entry of entriesToSave) {
         const horas = parseFloat(entry.hours);
-
         if (horas > 0) {
             if (!Number.isInteger(horas * 2)) {
                 alert(`Error en tarea "${entry.taskName}":\nLas horas (${horas}) deben ser múltiplos de 0.5 (ej: 1, 1.5, 2...).`);
@@ -171,21 +185,38 @@ export default function TimesheetApp({ employeeId }) {
 
     try {
       const promises = entriesToSave.map(entry => {
-        const payload = {
-            id_empleado: employeeId,
-            id_tarea: entry.taskId,
-            cantidad: entry.hours,
-            fecha: entry.date
-        };
-        
-        return fetch(`${API_URL}/horas`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        const horas = parseFloat(entry.hours) || 0;
+
+        if (horas > 0) {
+            const payload = {
+                id_empleado: employeeId,
+                id_tarea: entry.taskId,
+                cantidad: horas,
+                fecha: entry.date
+            };
+            
+            return fetch(`${API_URL}/horas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            return fetch(`${API_URL}/horas/${employeeId}/${entry.taskId}/${entry.date}`, {
+                method: 'DELETE'
+            });
+        }
       });
 
       await Promise.all(promises);
+      
+      // Limpieza visual: Quitamos de la lista local las tareas que quedaron en 0
+      setTimeEntries(prevEntries => {
+        return prevEntries.filter(e => {
+            if (e.date !== selectedDate) return true;
+            const horas = parseFloat(e.hours) || 0;
+            return horas > 0;
+        });
+      });
 
       setSuccessMessage("Horas guardadas exitosamente");
       setShowSuccess(true);
