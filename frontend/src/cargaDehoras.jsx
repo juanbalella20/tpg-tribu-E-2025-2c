@@ -32,20 +32,28 @@ export default function TimesheetApp({ employeeId }) {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    if (!employeeId) {
+      setProjects([]);
+      return;
+    }
+
     const fetchProjects = async () => {
       try {
-        const response = await fetch(`${API_URL}/projects/`);
+        const response = await fetch(`${API_URL}/projects/${employeeId}/`);
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
+        } else {
+          setProjects([]);
         }
       } catch (error) {
         console.error("Error cargando proyectos:", error);
+        setProjects([]);
       }
     };
 
     fetchProjects();
-  }, []);
+  }, [employeeId]);
 
   useEffect(() => {
     if (!selectedProject || !employeeId) {

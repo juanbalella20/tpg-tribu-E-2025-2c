@@ -191,6 +191,38 @@ def get_all_proyectos():
     except Exception as e:
         print(f"Error en get_all_proyectos: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+    
+@app.get("/api/projects/<string:employee_id>/")
+def get_projects_per_employee(employee_id):
+    try:
+        projects=set()
+        response_project = requests.get(PROJECTS_URL)
+        response = requests.get(TASKS_URL)
+        if response.status_code == 200 and response_project.status_code == 200:
+            data = response.json()
+            data_project= response_project.json()
+            for tarea in data:
+                pid_tarea = str(tarea.get("proyectoId"))
+                recurso_tarea = str(tarea.get("recursoId"))
+                
+                if recurso_tarea == str(employee_id):
+                    projects.add(pid_tarea)
+            colores = ['bg-red-500', 'bg-yellow-500', 'bg-lime-500', 'bg-emerald-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500']
+            proyectos_formateados = []
+            for index, proyecto in enumerate(data_project):
+                if proyecto["id"] in projects:
+                    proyectos_formateados.append({
+                        "id": proyecto["id"],
+                        "name": proyecto["nombre"],
+                        "color": colores[index % len(colores)] 
+                    })
+            return jsonify(proyectos_formateados), 200
+        else:
+            return jsonify({"error": "No se pudieron obtener las tareas externas"}), 502
+    except Exception as e:
+        print(f"Error en get_tareas_of_employee: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
 
 @app.get("/api/projects/<string:project_id>/<string:employee_id>/tasks/")
 def get_tareas_of_employee(project_id, employee_id):
