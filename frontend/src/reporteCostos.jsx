@@ -395,9 +395,4 @@ export default function CostReport() {
       )}
     </div>
   );
-}            </p>
-          </div>
-        )}
-      </div>
-  );
 }

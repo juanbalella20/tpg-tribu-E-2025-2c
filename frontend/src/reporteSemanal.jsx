@@ -8,22 +8,48 @@ export default function WeeklyReport({ employeeId }) {
   const [isMetadataLoading, setIsMetadataLoading] = useState(true);
   const [weeklyData, setWeeklyData] = useState({});
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
-  const [taskLookup, setTaskLookup] = useState({}); // Mapa de ID Tarea -> Detalles (Nombre, Proyecto, Color)
+  const [taskLookup, setTaskLookup] = useState({}); 
   const [error, setError] = useState(null);
 
-  const [currentEmployee] = useState({
-    id: employeeId || "18423123859", // ID por defecto del ejemplo anterior
-    name: 'Lautaro', // Estos datos podrían venir de un endpoint /api/me
-    lastName: 'Martinez'
-  });
+  const [currentEmployee, setCurrentEmployee] = useState({});
+
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      try {
+        let url;
+        
+        if (employeeId) {
+          url = `${API_URL}/employees/${employeeId}`;
+        }
+
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentEmployee({
+            id: data.employee_id,
+            name: data.nombre, 
+            lastName: data.apellido,
+            dni: data.dni
+          });
+        } else {
+          console.error("Error respuesta API usuario:", response.status);
+          setCurrentEmployee(prev => ({ ...prev, name: 'Usuario', lastName: 'Desconocido' }));
+        }
+      } catch (err) {
+        console.error("Error fetch usuario:", err);
+      }
+    };
+
+    fetchEmployeeData();
+  }, [employeeId]);
 
   // --- UTILIDADES DE FECHA ---
 
-  // Función para obtener el lunes de una semana dada
   const getMonday = (date) => {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar cuando es domingo
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(d.setDate(diff));
   };
 

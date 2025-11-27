@@ -56,6 +56,30 @@ TASKS_URL     = f"{BASE_MOCK_URL}/tareas-api/1.0.0/m/tareas"
 ROLES_URL     = f"{BASE_MOCK_URL}/roles-api/1.0.0/m/roles"
 # FINANCE_URL   = " "
 
+@app.get("/api/employees/<string:employee_id>")
+def get_employee_detail(employee_id):
+    """Obtiene los detalles (Nombre, DNI) de un empleado específico por ID"""
+    try:
+        response = requests.get(RESOURCES_URL)
+        if response.status_code == 200:
+            data = response.json()
+            employee = next((r for r in data if str(r["id"]) == str(employee_id)), None)
+            
+            if employee:
+                return jsonify({
+                    "employee_id": employee["id"],
+                    "nombre": employee.get("nombre"),
+                    "apellido": employee.get("apellido"),
+                    "dni": employee.get("dni")
+                }), 200
+            else:
+                return jsonify({"error": "Empleado no encontrado"}), 404
+                
+        return jsonify({"error": "Error al consultar recursos externos"}), 502
+    except Exception as e:
+        print(f"Error obteniendo empleado: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.get("/api/simulate/rand_emplyee_id")
 def simulate_login_id():
     """Simula obtener un ID de empleado aleatorio de la lista de recursos"""
@@ -65,10 +89,21 @@ def simulate_login_id():
             data = response.json()
             if data:
                 random_emp = random.choice(data)
-                return jsonify({"employee_id": random_emp["id"]}), 200
+                return jsonify({
+                    "employee_id": random_emp["id"],
+                    "nombre": random_emp.get("nombre"),
+                    "apellido": random_emp.get("apellido"),
+                    "dni": random_emp.get("dni")
+                }), 200
     except Exception as e:
         print(f"Error simulando login: {e}")
-    return jsonify({"employee_id": 1}), 200
+    
+    return jsonify({
+        "employee_id": "1", 
+        "nombre": "Usuario", 
+        "apellido": "Default", 
+        "dni": "00000000"
+    }), 200
 
 @app.get("/api/roles/")
 def get_roles():

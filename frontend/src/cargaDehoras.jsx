@@ -175,7 +175,7 @@ export default function TimesheetApp({ employeeId }) {
         const horas = parseFloat(entry.hours);
         if (horas > 0) {
             if (!Number.isInteger(horas * 2)) {
-                alert(`Error en tarea "${entry.taskName}":\nLas horas (${horas}) deben ser múltiplos de 0.5 (ej: 1, 1.5, 2...).`);
+                alert(`Error en tarea "${entry.taskName}":\nLas horas (${horas}) deben ser múltiplos de 0.5.`);
                 return;
             }
         }
@@ -185,26 +185,18 @@ export default function TimesheetApp({ employeeId }) {
 
     try {
       const promises = entriesToSave.map(entry => {
-        const horas = parseFloat(entry.hours) || 0;
-
-        if (horas > 0) {
-            const payload = {
-                id_empleado: employeeId,
-                id_tarea: entry.taskId,
-                cantidad: horas,
-                fecha: entry.date
-            };
-            
-            return fetch(`${API_URL}/horas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        } else {
-            return fetch(`${API_URL}/horas/${employeeId}/${entry.taskId}/${entry.date}`, {
-                method: 'DELETE'
-            });
-        }
+        const payload = {
+            id_empleado: employeeId,
+            id_tarea: entry.taskId,
+            cantidad: entry.hours,
+            fecha: entry.date
+        };
+        
+        return fetch(`${API_URL}/horas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
       });
 
       await Promise.all(promises);
@@ -218,12 +210,20 @@ export default function TimesheetApp({ employeeId }) {
         });
       });
 
-      setSuccessMessage("Horas guardadas exitosamente");
+      setTimeEntries(prevEntries => {
+        return prevEntries.filter(e => {
+            if (e.date !== selectedDate) return true;
+            const horas = parseFloat(e.hours) || 0;
+            return horas > 0;
+        });
+      });
+
+      setSuccessMessage("Horas actualizadas correctamente");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error("Error saving hours:", error);
-      alert("Error al guardar las horas");
+      alert("Hubo un error al guardar los cambios.");
     } finally {
       setIsLoading(false);
     }
