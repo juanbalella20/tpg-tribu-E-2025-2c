@@ -44,7 +44,8 @@ except ImportError:
         return []
 
 app = Flask(__name__)
-CORS(app)
+front_url = "https://tpg-tribu-e-2025-2c-317c.onrender.com"
+CORS(app, origins=[front_url])
 
 # Inicializar Base de Datos
 crear_bd_y_tabla()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, User, Loader2, AlertCircle } from 'lucide-react';
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function WeeklyReport({ employeeId }) {
   const [isLoading, setIsLoading] = useState(false);

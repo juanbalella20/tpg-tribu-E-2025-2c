@@ -7,7 +7,7 @@ import WeeklyReport from './reporteSemanal.jsx';
 import ProjectCostsReport from './proyectos.jsx';
 import ProfileCostsReport from './perfiles.jsx';
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function App() {
   const [activeView, setActiveView] = useState(null);

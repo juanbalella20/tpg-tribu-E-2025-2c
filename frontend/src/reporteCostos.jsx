@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { DollarSign, Calendar, User, Loader2, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const PROJECTS_ENDPOINT = `${API_BASE_URL}/projects/`;
 
 const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
