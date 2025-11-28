@@ -136,7 +136,7 @@ def simulate_login_id():
         if response.status_code == 200:
             data = response.json()
             if data:
-                random_emp = random.choice(data)
+                random_emp = data[0]
                 return jsonify({
                     "employee_id": random_emp["id"],
                     "nombre": random_emp.get("nombre"),

@@ -11,24 +11,26 @@ const API_URL = "http://localhost:5000/api";
 
 export default function App() {
   const [activeView, setActiveView] = useState(null);
-  
-  // ESTADO GLOBAL: ID de empleado
-  const [employeeId, setEmployeeId] = useState(null);
+  const [userData, setUserData] = useState(null);
 
-  // "LOGIN: Se ejecuta solo una vez al cargar la App"
   useEffect(() => {
-    const fetchEmployeeId = async () => {
+    const fetchUserData = async () => {
       try {
         const response = await fetch(`${API_URL}/simulate/rand_emplyee_id`);
-        const data = await response.json();
-        setEmployeeId(data.employee_id);
-        console.log("Sesión iniciada. Empleado ID:", data.employee_id);
+        if (response.ok) {
+            const data = await response.json();
+            setUserData(data);
+            console.log("Sesión iniciada:", data);
+        }
       } catch (error) {
-        console.error("Error obteniendo ID de empleado:", error);
+        console.error("Error obteniendo datos de usuario:", error);
       }
     };
-    fetchEmployeeId();
+    fetchUserData();
   }, []);
+
+  // Extraemos el ID para pasarlo a los componentes hijos
+  const employeeId = userData?.employee_id;
 
   // Definimos las opciones de navegación
   const navItems = [
@@ -125,11 +127,6 @@ export default function App() {
               <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
                 PSA
               </h1>
-              {employeeId && (
-                <span className="text-xs text-slate-400 font-mono">
-                  ID: {employeeId}
-                </span>
-              )}
             </div>
 
             {/* Nueva Barra de Navegación */}
@@ -149,6 +146,33 @@ export default function App() {
               ))}
             </nav>
 
+             <div className="flex items-center gap-4">
+                {userData ? (
+                    <div className="flex items-center gap-3 pl-4 border-l border-slate-700/50">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-semibold text-white leading-tight">
+                                {userData.nombre} {userData.apellido}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                                DNI: {userData.dni}
+                            </p>
+                        </div>
+                        {/* Avatar */}
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-[2px] shadow-lg shadow-blue-500/20">
+                            <div className="h-full w-full rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-sm">
+                                {userData.nombre ? userData.nombre.charAt(0) : 'U'}
+                                {userData.apellido ? userData.apellido.charAt(0) : ''}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 animate-pulse">
+                        <div className="h-8 w-24 bg-slate-700 rounded"></div>
+                        <div className="h-10 w-10 bg-slate-700 rounded-full"></div>
+                    </div>
+                )}
+            </div>
+
             {/* Menú móvil simple (opcional, visible solo si la pantalla es muy chica) */}
             <div className="md:hidden">
                {/* Aquí podrías poner un menú hamburguesa, por ahora solo mostramos el ID */}
@@ -162,7 +186,7 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView ? (
           <div className="space-y-6">
-            {/* Botón Volver adicional (opcional, ya que el header navega) */}
+            {/* Botón Volver adicional */}
             <button
               onClick={() => setActiveView(null)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/70 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm"
