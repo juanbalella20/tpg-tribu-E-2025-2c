@@ -94,7 +94,7 @@ export default function WeeklyReport({ employeeId }) {
       // B. Obtener tareas de cada proyecto para este empleado
       // (Necesitamos esto para mapear ID_TAREA -> NOMBRE_TAREA)
       const tasksPromises = projectsData.map(project => 
-        fetch(`${API_URL}/projects/${project.id}/${currentEmployee.id}/tasks/`)
+        fetch(`${API_URL}/projects/${project.id}/tasks/`)
           .then(res => res.ok ? res.json() : [])
           .then(tasks => tasks.map(t => ({ ...t, projectColor: project.color, projectName: project.name })))
       );

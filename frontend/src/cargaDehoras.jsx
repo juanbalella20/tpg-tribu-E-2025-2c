@@ -39,7 +39,7 @@ export default function TimesheetApp({ employeeId }) {
 
     const fetchProjects = async () => {
       try {
-        const response = await fetch(`${API_URL}/projects/${employeeId}/`);
+        const response = await fetch(`${API_URL}/projects/`);
         if (response.ok) {
           const data = await response.json();
           setProjects(data);
@@ -56,14 +56,15 @@ export default function TimesheetApp({ employeeId }) {
   }, [employeeId]);
 
   useEffect(() => {
-    if (!selectedProject || !employeeId) {
+    if (!employeeId) {
       setTasks([]);
       return;
     }
 
     const fetchTasks = async () => {
       try {
-        const response = await fetch(`${API_URL}/projects/${selectedProject}/${employeeId}/tasks/`);
+        const projectIdParam = selectedProject || 'all'; 
+        const response = await fetch(`${API_URL}/projects/${projectIdParam}/tasks/`);
         if (response.ok) {
           const data = await response.json();
           setTasks(data);
@@ -71,7 +72,7 @@ export default function TimesheetApp({ employeeId }) {
           setTasks([]);
         }
       } catch (error) {
-        console.error("Error cargando tareas del proyecto:", error);
+        console.error("Error cargando tareas:", error);
         setTasks([]);
       }
     };
@@ -289,7 +290,7 @@ export default function TimesheetApp({ employeeId }) {
                   <button
                     key={project.id}
                     onClick={() =>
-                      setSelectedProject(selectedProject === project.id ? null : project.id)
+                      setSelectedProject(selectedProject === project.id ? "all" : project.id)
                     }
                     className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
                       selectedProject === project.id
@@ -297,7 +298,7 @@ export default function TimesheetApp({ employeeId }) {
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    <div className={`w-3 h-3 rounded-full ${project.color}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${project.color || 'bg-gray-500'}`}></div>
                     {project.name}
                   </button>
                 ))}
@@ -340,10 +341,12 @@ export default function TimesheetApp({ employeeId }) {
                         className="p-4 border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors flex items-center justify-between group"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <div className={`w-2 h-2 rounded-full ${project.color}`}></div>
+                          <div className={`w-2 h-2 rounded-full ${project?.color || 'bg-gray-500'}`}></div>
                           <div>
                             <div className="font-medium">{task.name}</div>
-                            <div className="text-xs text-slate-400">{project.name}</div>
+                            <div className="text-xs text-slate-400">
+                              {project?.name || 'Proyecto desconocido'}
+                            </div>
                           </div>
                         </div>
                         <button
@@ -397,7 +400,7 @@ export default function TimesheetApp({ employeeId }) {
                           <div className="flex-1">
                             <div className="font-medium text-sm">{entry.taskName}</div>
                             <div className="flex items-center gap-2 mt-1">
-                              {project && <div className={`w-2 h-2 rounded-full ${project.color}`}></div>}
+                              {project && <div className={`w-2 h-2 rounded-full ${project.color || 'bg-gray-500'}`}></div>}
                               <div className="text-xs text-slate-400">{project ? project.name : 'Proyecto N/A'}</div>
                             </div>
                           </div>

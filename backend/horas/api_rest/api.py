@@ -254,25 +254,25 @@ def get_projects_per_employee(employee_id):
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
-@app.get("/api/projects/<string:project_id>/<string:employee_id>/tasks/")
-def get_tareas_of_employee(project_id, employee_id):
+@app.get("/api/projects/<string:project_id>/tasks/")
+def get_tareas_of_employee(project_id):
     try:
         response = requests.get(TASKS_URL)
         if response.status_code == 200:
             data = response.json()
             tareas_formateadas = []
+            mostrar_todas = (str(project_id).lower() == "all")
             for tarea in data:
                 pid_tarea = str(tarea.get("proyectoId"))
                 recurso_tarea = str(tarea.get("recursoId"))
-                
-                if pid_tarea == str(project_id) and recurso_tarea == str(employee_id):
+
+                if mostrar_todas or pid_tarea == str(project_id):
                     tareas_formateadas.append({
                         "id": tarea["id"],
                         "name": tarea["nombre"],
                         "projectId": pid_tarea,
                         "recursoId": recurso_tarea
                     })
-            
             return jsonify(tareas_formateadas), 200
         else:
             return jsonify({"error": "No se pudieron obtener las tareas externas"}), 502
@@ -446,9 +446,4 @@ def endpoint_eliminar_horas(id_empleado, id_tarea, fecha):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT",5000))
-    app.run(
-        hostv= "0.0.0.0",
-        port=port,
-        debug=False
-    )
+    app.run(debug=True, port=5000)
