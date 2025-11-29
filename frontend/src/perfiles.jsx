@@ -94,7 +94,7 @@ export default function ProfileCostsReport() {
           perfil_nombre: profile.name,
           costo: parseFloat(tempValue) || 0,
           mes: monthIndex + 1,
-          año: selectedYear
+          anio: selectedYear
         })
       });
 
