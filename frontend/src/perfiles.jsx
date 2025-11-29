@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Edit2, Save, X, Percent, Check, DollarSign } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_FINANCE_API_URL || 'http://localhost:3001/api';
 
 export default function ProfileCostsReport() {
   const [selectedYear, setSelectedYear] = useState(2025);

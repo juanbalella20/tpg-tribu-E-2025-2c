@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, DollarSign, TrendingUp } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_FINANCE_API_URL || 'http://localhost:3001/api';
 
 export default function ProjectCostsReport() {
   const [projects, setProjects] = useState([]);
