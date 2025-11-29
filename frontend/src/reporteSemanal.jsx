@@ -310,14 +310,7 @@ export default function WeeklyReport({ employeeId }) {
       <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden shadow-xl">
         <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/70">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center border border-slate-600">
-              <User className="w-6 h-6 text-emerald-400" />
-            </div>
             <div>
-              <h3 className="text-lg font-semibold">
-                {currentEmployee.name} {currentEmployee.lastName}
-              </h3>
-              <p className="text-sm text-slate-400">ID {currentEmployee.id}</p>
             </div>
           </div>
           <div className="text-right">
