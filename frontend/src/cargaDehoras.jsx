@@ -1,33 +1,18 @@
-import React, { useState } from 'react';
-import { Search, Calendar, Clock, Plus, X, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Calendar, Clock, Plus, X, Check, Loader2, Trash2 } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const formatDate = (date) => {
   const offset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offset).toISOString().split('T')[0];
 };
 
-export default function TimesheetApp() {
-  const [projects] = useState([
-    { id: 1, name: 'Proyecto 1', color: 'bg-red-500' },
-    { id: 2, name: 'Proyecto 2', color: 'bg-purple-500' },
-    { id: 3, name: 'Proyecto 3', color: 'bg-blue-500' },
-    { id: 4, name: 'Proyecto 4', color: 'bg-green-500' }
-  ]);
-
-  const [tasks] = useState([
-    { id: 1, projectId: 1, name: 'Diseño de interfaz' },
-    { id: 2, projectId: 1, name: 'Desarrollo frontend' },
-    { id: 3, projectId: 1, name: 'Testing de componentes' },
-    { id: 4, projectId: 2, name: 'Configuración servidor' },
-    { id: 5, projectId: 2, name: 'API REST' },
-    { id: 6, projectId: 2, name: 'Documentación técnica' },
-    { id: 7, projectId: 3, name: 'Análisis de requisitos' },
-    { id: 8, projectId: 3, name: 'Base de datos' },
-    { id: 9, projectId: 3, name: 'Integración de sistemas' },
-    { id: 10, projectId: 4, name: 'Revisión de código' },
-    { id: 11, projectId: 4, name: 'Optimización' },
-    { id: 12, projectId: 4, name: 'Deploy producción' }
-  ]);
+export default function TimesheetApp({ employeeId }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(null);
+  const [projects, setProjects] = useState([]); 
+  const [tasks, setTasks] = useState([]);
 
   const now = new Date();
   const minSelectableDate = new Date(now);
@@ -44,24 +29,99 @@ export default function TimesheetApp() {
   const [selectedDate, setSelectedDate] = useState(todayString);
   const [timeEntries, setTimeEntries] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
+  useEffect(() => {
+    if (!employeeId) {
+      setProjects([]);
+      return;
+    }
+
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/projects/`);
+        if (response.ok) {
+          const data = await response.json();
+          setProjects(data);
+        } else {
+          setProjects([]);
+        }
+      } catch (error) {
+        console.error("Error cargando proyectos:", error);
+        setProjects([]);
+      }
+    };
+
+    fetchProjects();
+  }, [employeeId]);
+
+  useEffect(() => {
+    if (!employeeId) {
+      setTasks([]);
+      return;
+    }
+
+    const fetchTasks = async () => {
+      try {
+        const projectIdParam = selectedProject || 'all'; 
+        const response = await fetch(`${API_URL}/projects/${projectIdParam}/tasks/`);
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+        } else {
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error("Error cargando tareas:", error);
+        setTasks([]);
+      }
+    };
+
+    fetchTasks();
+  }, [selectedProject, employeeId]);
+
+  useEffect(() => {
+    if (!employeeId || !selectedDate) return;
+
+    const fetchHours = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/horas/${employeeId}/${selectedDate}`);
+        if (response.ok) {
+            const data = await response.json();
+            const daysEntries = data.filter(entry => entry.fecha === selectedDate);
+            
+            const mappedEntries = daysEntries.map(entry => {
+                const taskDef = tasks.find(t => t.id === entry.id_tarea);
+                
+                return {
+                    taskId: entry.id_tarea,
+                    taskName: taskDef ? taskDef.name : 'Tarea registrada',
+                    projectId: taskDef ? taskDef.projectId : null,
+                    date: entry.fecha,
+                    hours: parseFloat(entry.cantidad)
+                };
+            });
+            setTimeEntries(mappedEntries);
+        }
+      } catch (error) {
+        console.error("Error fetching hours:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHours();
+  }, [employeeId, selectedDate, tasks]);
   const filteredTasks = tasks.filter(task => {
-    const matchesProject = !selectedProject || task.projectId === selectedProject;
-    const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesProject && matchesSearch;
+    return task.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const handleDateChange = (value) => {
     if (!value) return;
-    if (value < minDateString) {
-      setSelectedDate(minDateString);
-      return;
-    }
-    if (value > maxDateString) {
-      setSelectedDate(maxDateString);
-      return;
-    }
-    setSelectedDate(value);
+    if (value < minDateString) setSelectedDate(minDateString);
+    else if (value > maxDateString) setSelectedDate(maxDateString);
+    else setSelectedDate(value);
   };
 
   const addTimeEntry = (task) => {
@@ -83,31 +143,118 @@ export default function TimesheetApp() {
     ));
   };
 
-  const removeEntry = (taskId) => {
-    setTimeEntries(timeEntries.filter(e => !(e.taskId === taskId && e.date === selectedDate)));
+  const removeEntry = async (taskId) => {
+    setIsDeleting(taskId);
+    try {
+        const response = await fetch(`${API_URL}/horas/${employeeId}/${taskId}/${selectedDate}`, {
+            method: 'DELETE',
+        });
+
+        if (response.ok) {
+            setTimeEntries(prevEntries => prevEntries.filter(e => !(e.taskId === taskId && e.date === selectedDate)));
+            setSuccessMessage("Registro eliminado");
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+        } else {
+            console.error("Error al eliminar en backend");
+            alert("No se pudo eliminar el registro. Intente nuevamente.");
+        }
+    } catch (error) {
+        console.error("Error de red:", error);
+        alert("Error de conexión al intentar eliminar.");
+    } finally {
+        setIsDeleting(null);
+    }
   };
 
-  const saveEntries = () => {
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  const saveEntries = async () => {
+    if (!employeeId) return;
+
+    const entriesToSave = timeEntries.filter(e => e.date === selectedDate);
+
+    const totalHorasDia = entriesToSave.reduce((total, entry) => {
+        return total + (parseFloat(entry.hours) || 0);
+    }, 0);
+
+    if (totalHorasDia > 24) {
+        alert(`El total de horas cargadas para hoy suma ${totalHorasDia} horas.\nNo puede superar las 24 horas.`);
+        return;
+    }
+    for (const entry of entriesToSave) {
+        const horas = parseFloat(entry.hours);
+        if (horas > 0) {
+            if (!Number.isInteger(horas * 2)) {
+                alert(`Error en tarea "${entry.taskName}":\nLas horas (${horas}) deben ser múltiplos de 0.5.`);
+                return;
+            }
+        }
+    }
+
+    setIsLoading(true);
+
+    try {
+      const promises = entriesToSave.map(entry => {
+        const payload = {
+            id_empleado: employeeId,
+            id_tarea: entry.taskId,
+            cantidad: entry.hours,
+            fecha: entry.date
+        };
+        
+        return fetch(`${API_URL}/horas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+      });
+
+      await Promise.all(promises);
+      
+      // Limpieza visual: Quitamos de la lista local las tareas que quedaron en 0
+      setTimeEntries(prevEntries => {
+        return prevEntries.filter(e => {
+            if (e.date !== selectedDate) return true;
+            const horas = parseFloat(e.hours) || 0;
+            return horas > 0;
+        });
+      });
+
+      setTimeEntries(prevEntries => {
+        return prevEntries.filter(e => {
+            if (e.date !== selectedDate) return true;
+            const horas = parseFloat(e.hours) || 0;
+            return horas > 0;
+        });
+      });
+
+      setSuccessMessage("Horas actualizadas correctamente");
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error saving hours:", error);
+      alert("Hubo un error al guardar los cambios.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const todayEntries = timeEntries.filter(e => e.date === selectedDate);
   const totalHours = todayEntries.reduce((sum, e) => sum + e.hours, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Header */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-10">
+    <div className="min-h-screen bg-transparent text-white">
+      {/* Header interno */}
+      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-10 rounded-t-2xl">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">PSA - Carga de Horas</h1>
-              <p className="text-slate-400 text-sm mt-1">Gestiona tu tiempo de forma eficiente</p>
+              <h1 className="text-xl font-bold">Carga de Horas</h1>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-3xl font-bold text-emerald-400">{totalHours.toFixed(1)}h</div>
+                <div className="text-2xl font-bold text-emerald-400">
+                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : `${totalHours.toFixed(1)}h`}
+                </div>
                 <div className="text-xs text-slate-400">Total del día</div>
               </div>
             </div>
@@ -143,7 +290,7 @@ export default function TimesheetApp() {
                   <button
                     key={project.id}
                     onClick={() =>
-                      setSelectedProject(selectedProject === project.id ? null : project.id)
+                      setSelectedProject(selectedProject === project.id ? "all" : project.id)
                     }
                     className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
                       selectedProject === project.id
@@ -151,7 +298,7 @@ export default function TimesheetApp() {
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    <div className={`w-3 h-3 rounded-full ${project.color}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${project.color || 'bg-gray-500'}`}></div>
                     {project.name}
                   </button>
                 ))}
@@ -194,15 +341,17 @@ export default function TimesheetApp() {
                         className="p-4 border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors flex items-center justify-between group"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <div className={`w-2 h-2 rounded-full ${project.color}`}></div>
+                          <div className={`w-2 h-2 rounded-full ${project?.color || 'bg-gray-500'}`}></div>
                           <div>
                             <div className="font-medium">{task.name}</div>
-                            <div className="text-xs text-slate-400">{project.name}</div>
+                            <div className="text-xs text-slate-400">
+                              {project?.name || 'Proyecto desconocido'}
+                            </div>
                           </div>
                         </div>
                         <button
                           onClick={() => addTimeEntry(task)}
-                          disabled={alreadyAdded}
+                          disabled={alreadyAdded || isLoading}
                           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                             alreadyAdded
                               ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
@@ -231,7 +380,12 @@ export default function TimesheetApp() {
               </div>
               
               <div className="max-h-[500px] overflow-y-auto p-4 space-y-3">
-                {todayEntries.length === 0 ? (
+                {isLoading && todayEntries.length === 0 ? (
+                   <div className="text-center py-12 text-slate-400 flex flex-col items-center">
+                       <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                       <p>Cargando horas...</p>
+                   </div>
+                ) : todayEntries.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
                     <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p>No hay horas cargadas</p>
@@ -246,23 +400,31 @@ export default function TimesheetApp() {
                           <div className="flex-1">
                             <div className="font-medium text-sm">{entry.taskName}</div>
                             <div className="flex items-center gap-2 mt-1">
-                              <div className={`w-2 h-2 rounded-full ${project.color}`}></div>
-                              <div className="text-xs text-slate-400">{project.name}</div>
+                              {project && <div className={`w-2 h-2 rounded-full ${project.color || 'bg-gray-500'}`}></div>}
+                              <div className="text-xs text-slate-400">{project ? project.name : 'Proyecto N/A'}</div>
                             </div>
                           </div>
+                          
+                          {/* BOTÓN DE ELIMINAR CON LOGICA DE BORRADO DE BD */}
                           <button
                             onClick={() => removeEntry(entry.taskId)}
-                            className="text-slate-400 hover:text-red-400 transition-colors"
+                            disabled={isDeleting === entry.taskId}
+                            className="text-slate-400 hover:text-red-400 transition-colors p-2 hover:bg-slate-600/50 rounded-lg"
+                            title="Eliminar de la base de datos"
                           >
-                            <X className="w-4 h-4" />
+                            {isDeleting === entry.taskId ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                            ) : (
+                                <Trash2 className="w-4 h-4" />
+                            )}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            min="0"
+                            min="0.5"
                             max="24"
-                            step="0.25"
+                            step="0.5"
                             value={entry.hours}
                             onChange={(e) => updateHours(entry.taskId, e.target.value)}
                             className="w-full bg-slate-600/50 border border-slate-500 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -279,10 +441,11 @@ export default function TimesheetApp() {
                 <div className="p-4 border-t border-slate-700 bg-slate-800/70">
                   <button
                     onClick={saveEntries}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:text-slate-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
                   >
-                    <Check className="w-5 h-5" />
-                    Guardar Horas
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                    {isLoading ? 'Guardando...' : 'Actualizar Horas'}
                   </button>
                 </div>
               )}
@@ -296,8 +459,8 @@ export default function TimesheetApp() {
         <div className="fixed bottom-6 right-6 bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom">
           <Check className="w-5 h-5" />
           <div>
-            <div className="font-semibold">¡Guardado exitoso!</div>
-            <div className="text-sm opacity-90">{totalHours.toFixed(1)} horas registradas</div>
+            <div className="font-semibold">{successMessage || "¡Operación exitosa!"}</div>
+            <div className="text-sm opacity-90">{totalHours.toFixed(1)} horas en total</div>
           </div>
         </div>
       )}
